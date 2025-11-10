@@ -70,19 +70,19 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
         if (strcmp(argv[i], "-h")) {
             hFlag = 1;
         }
-        else if (strcmp(argv[i], "-s")) {
+        else if (strcmp(argv[i], "-s") && (i+1 < argc)) {
             s_flag_included = 1;
             *num_block_bits = atoi(argv[i++]); // inc i to skip over contents of flag
         }
-        else if (strcmp(argv[i], "-E")) {
+        else if (strcmp(argv[i], "-E") && (i+1 < argc)) {
             e_flag_included = 1;
             *num_lines_per_set = atoi(argv[i++]); // inc i to skip over contents of flag
         }
-        else if (strcmp(argv[i], "-b")) {
+        else if (strcmp(argv[i], "-b") && (i+1 < argc)) {
             b_flag_included = 1;
             *num_block_bits = atoi(argv[i++]); // inc i to skip over contents of flag
         }
-        else if (strcmp(argv[i], "-t")) {
+        else if (strcmp(argv[i], "-t") && (i+1 < argc)) {
             t_flag_included = 1;
             trace_file_name = argv[i++]; // inc i to skip over contents of flag
         }
