@@ -1,6 +1,6 @@
 /*
  * Cole Francis (A02365322)
- * Justin Hulme (A________)
+ * Justin Hulme (A02427854)
  * 
  * Usage: ./csim-ref [-hv] -s <s> -E <E> -b <b> -t <tracefile>
  *  -h: Optional help flag that prints usage info
