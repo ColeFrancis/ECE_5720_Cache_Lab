@@ -20,7 +20,16 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
 
 int main(int argc, char **argv)
 {
-    //if (!checkArgs(argc, argv)) return 0;
+    int num_set_index_bits;
+    int num_lines_per_set;
+    int num_block_bits;
+    char* trace_file_name;
+
+    if (!checkArgs(argc, argv, &num_set_index_bits, &num_lines_per_set, &num_block_bits, trace_file_name)) 
+    {
+        fprintf(stderr, "Error: please include all required flags. Use -h flag for usage info.\n");
+        return 0;
+    }
 
     printSummary(0, 0, 0);
     return 0;
@@ -56,7 +65,7 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
         }
         else if (strcmp(argv[i], "-t")) {
             t_flag_included = 1;
-            trace_file_name = argv[i++];
+            trace_file_name = argv[i++]; // inc i to skip over contents of flag
         }
     }
 
@@ -70,10 +79,5 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
                "    -t <tracefile>: Name of the valgrind trace to replay");
     }
 
-    if (!(s_flag_included && e_flag_included && b_flag_included && t_flag_included)) {
-        fprintf(stderr, "Error: please include all required flags. use -h flag for usage");
-        return 0;
-    }
-
-    return 1;
+    return s_flag_included && e_flag_included && b_flag_included && t_flag_included;
 }
