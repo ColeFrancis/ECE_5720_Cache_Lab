@@ -17,15 +17,7 @@
 #include "cachelab.h"
 
 int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char* trace_file_name);
-int parseLine(char*){
-    char type;
-    int return_val;
-    int length;
-
-    sprintf(" %c %x,%d", type, return_val, length);
-
-    return return_val;
-}
+int getAddressFromLine(char* line);
 
 int main(int argc, char **argv)
 {
@@ -40,17 +32,22 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    FILE* trace_file = fopen(trace_file_name, "r");
 
+    if (trace_file == NULL){
+        fprintf(stderr, "Error: file not found\n");
+        return 0;
+    }
 
     char* line[20];
     while (line != NULL){
-        fgets(line, 20, );
+        fgets(line, 20, trace_file);
 
         if (line[0] != ' '){
-            continue;
+            continue; // skip instuction fetches
         }
 
-        int address = parseLine(line);
+        int address = getAddressFromLine(line);
     }
 
     printSummary(0, 0, 0);
@@ -102,4 +99,14 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
     }
 
     return s_flag_included && e_flag_included && b_flag_included && t_flag_included;
+}
+
+int getAddressFromLine(char* line){
+    char _type;
+    int return_val;
+    int _length;
+
+    sprintf(line, " %c %x,%d", _type, return_val, _length);
+
+    return return_val;
 }
