@@ -17,10 +17,32 @@
 #include "cachelab.h"
 
 int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char* trace_file_name);
+int parseLine(char*){
+    char type;
+    int return_val;
+    int length;
+
+    sprintf(" %c %x,%d", type, return_val, length);
+
+    return return_val;
+}
 
 int main(int argc, char **argv)
 {
     //if (!checkArgs(argc, argv)) return 0;
+
+
+
+    char* line[20];
+    while (line != NULL){
+        fgets(line, 20, );
+
+        if (line[0] != ' '){
+            continue;
+        }
+
+        int address = parseLine(line);
+    }
 
     printSummary(0, 0, 0);
     return 0;
