@@ -18,6 +18,7 @@
 
 int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char* trace_file_name);
 unsigned int getAddressFromLine(char* line);
+int loadFromMemory(unsigned int address, int* hit_count, int* miss_count, int*eviction_count);
 
 int main(int argc, char **argv)
 {
@@ -39,6 +40,10 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    int hit_count = 0;
+    int miss_count = 0;
+    int eviction_count = 0;
+
     char line[20];
     while (fgets(line, sizeof(line), trace_file) != NULL) {
         if (line[0] != ' ') {
@@ -46,10 +51,15 @@ int main(int argc, char **argv)
         }
 
         unsigned int address = getAddressFromLine(line);
-        printf("%u\n", address);
+        
+        loadFromMemory(address, &hit_count, &miss_count, &eviction_count);
     }
 
-    printSummary(0, 0, 0);
+    printSummary(hit_count, miss_count, eviction_count);
+    return 0;
+}
+
+int loadFromMemory(unsigned int address, int* hit_count, int* miss_count, int*eviction_count){
     return 0;
 }
 
