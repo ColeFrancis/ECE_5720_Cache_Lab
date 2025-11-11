@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     }
 
     char* line[20];
-    while (line != NULL){
+    while (line != NULL){ 
         fgets(line, 20, trace_file);
 
         if (line[0] != ' '){
