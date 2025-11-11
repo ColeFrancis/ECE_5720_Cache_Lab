@@ -85,28 +85,28 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
         }
         else if (strcmp(argv[i], "-s") == 0 && (i+1 < argc)) {
             if ( !(*num_set_index_bits = atoi(argv[i+1])) ) 
-                return 0;
+                break;
 
             i++; // inc i to skip over contents of flag
             s_flag_included = 1;
         }
         else if (strcmp(argv[i], "-E") == 0 && (i+1 < argc)) {
             if ( !(*num_lines_per_set = atoi(argv[i+1])) ) 
-                return 0;
+                break;
 
             i++; // inc i to skip over contents of flag
             e_flag_included = 1;
         }
         else if (strcmp(argv[i], "-b") == 0 && (i+1 < argc)) {
             if ( !(*num_block_bits = atoi(argv[i+1])) ) 
-                return 0;
+                break;
 
             i++; // inc i to skip over contents of flag
             b_flag_included = 1;
         }
         else if (strcmp(argv[i], "-t") == 0 && (i+1 < argc)) {
             if ( !(*trace_file_name = argv[i+1]) ) 
-                return 0;
+                break;
 
             i++; // inc i to skip over contents of flag
             t_flag_included = 1;
