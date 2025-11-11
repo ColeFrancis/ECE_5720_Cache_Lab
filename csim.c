@@ -16,8 +16,8 @@
 #include <stdlib.h>
 #include "cachelab.h"
 
-int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char* trace_file_name);
-unsigned int getAddressFromLine(char* line);
+int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name);
+int getAddressFromLine(char* line);
 int loadFromMemory(unsigned int address, int* hit_count, int* miss_count, int*eviction_count);
 
 int main(int argc, char **argv)
@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     int num_block_bits;
     char* trace_file_name;
 
-    if (!checkArgs(argc, argv, &num_set_index_bits, &num_lines_per_set, &num_block_bits, trace_file_name)) 
+    if (!checkArgs(argc, argv, &num_set_index_bits, &num_lines_per_set, &num_block_bits, &trace_file_name)) 
     {
         fprintf(stderr, "Error: please include all required flags. Use -h flag for usage info.\n");
         return 0;
@@ -44,15 +44,22 @@ int main(int argc, char **argv)
     int miss_count = 0;
     int eviction_count = 0;
 
-    char line[20];
-    while (fgets(line, sizeof(line), trace_file) != NULL) {
-        if (line[0] != ' ') {
-            continue; // skip instruction fetches
+    int hit_count = 0;
+    int miss_count = 0;
+    int eviction_count = 0;
+
+    char* line[20];
+    while (line != NULL){ 
+        fgets(line, 20, trace_file);
+
+        if (line[0] != ' '){
+            continue; // skip instuction fetches
         }
 
         unsigned int address = getAddressFromLine(line);
         
         loadFromMemory(address, &hit_count, &miss_count, &eviction_count);
+        int address = getAddressFromLine(line);
     }
 
     printSummary(hit_count, miss_count, eviction_count);
@@ -66,7 +73,7 @@ int loadFromMemory(unsigned int address, int* hit_count, int* miss_count, int*ev
 /**
  * Return 1 if valid, 0 if not
  */
-int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char* trace_file_name)
+int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name)
 {
     int hFlag = 0;
     int s_flag_included = 0;
@@ -76,24 +83,36 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
 
     // Iterate through argv
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-h")) {
+        if (strcmp(argv[i], "-h") == 0) {
             hFlag = 1;
         }
-        else if (strcmp(argv[i], "-s") && (i+1 < argc)) {
+        else if (strcmp(argv[i], "-s") == 0 && (i+1 < argc)) {
+            if ( !(*num_set_index_bits = atoi(argv[i+1])) ) 
+                return 0;
+
+            i++; // inc i to skip over contents of flag
             s_flag_included = 1;
-            *num_block_bits = atoi(argv[i++]); // inc i to skip over contents of flag
         }
-        else if (strcmp(argv[i], "-E") && (i+1 < argc)) {
+        else if (strcmp(argv[i], "-E") == 0 && (i+1 < argc)) {
+            if ( !(*num_lines_per_set = atoi(argv[i+1])) ) 
+                return 0;
+
+            i++; // inc i to skip over contents of flag
             e_flag_included = 1;
-            *num_lines_per_set = atoi(argv[i++]); // inc i to skip over contents of flag
         }
-        else if (strcmp(argv[i], "-b") && (i+1 < argc)) {
+        else if (strcmp(argv[i], "-b") == 0 && (i+1 < argc)) {
+            if ( !(*num_block_bits = atoi(argv[i+1])) ) 
+                return 0;
+
+            i++; // inc i to skip over contents of flag
             b_flag_included = 1;
-            *num_block_bits = atoi(argv[i++]); // inc i to skip over contents of flag
         }
-        else if (strcmp(argv[i], "-t") && (i+1 < argc)) {
+        else if (strcmp(argv[i], "-t") == 0 && (i+1 < argc)) {
+            if ( !(*trace_file_name = argv[i+1]) ) 
+                return 0;
+
+            i++; // inc i to skip over contents of flag
             t_flag_included = 1;
-            trace_file_name = argv[i++]; // inc i to skip over contents of flag
         }
     }
 
@@ -104,18 +123,18 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
                "    -s <s>: Number of set index bits (S = 2s is the number of sets)\n"
                "    -E <E>: Associativity (number of lines per set)\n"
                "    -b <b>: Number of block bits (B = 2b is the block size)\n"
-               "    -t <tracefile>: Name of the valgrind trace to replay");
+               "    -t <tracefile>: Name of the valgrind trace to replay\n");
     }
-
+    
     return s_flag_included && e_flag_included && b_flag_included && t_flag_included;
 }
 
-unsigned int getAddressFromLine(char* line){
+int getAddressFromLine(char* line){
     char _type;
-    unsigned int return_val;
+    int return_val;
     int _length;
 
-    sscanf(line, " %c %x,%d", &_type, &return_val, &_length);
+    sprintf(line, " %c %x,%d", _type, return_val, _length);
 
     return return_val;
 }
