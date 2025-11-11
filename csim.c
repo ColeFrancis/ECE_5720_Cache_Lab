@@ -14,11 +14,29 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "cachelab.h"
 
 int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name);
 int getAddressFromLine(char* line);
-int loadFromMemory(unsigned int address, int* hit_count, int* miss_count, int*eviction_count);
+int loadFromMemory(Cache_t* cache, unsigned int address);
+
+typedef struct {
+    uint8_t valid;
+    uint32_t tag;
+} Cache_Line_t;
+
+typedef struct {
+    Cache_Line_t* lines;
+    uint8_t* use_history;
+} Cache_Set_t;
+
+typedef struct {
+    Cache_Set_t* sets;
+    uint32_t hit_count;
+    uint32_t miss_count;
+    uint32_t eviction_count;
+} Cache_t;
 
 int main(int argc, char **argv)
 {
@@ -33,20 +51,32 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    uint8_t num_sets = 1u << num_set_index_bits;
+    Cache_t cache;
+
+    cache.sets = (Cache_Set_t*) malloc(num_sets * sizeof(Cache_Set_t));
+    cache.hit_count = 0;
+    cache.miss_count = 0;
+    cache.eviction_count = 0;
+
+    for (int set = 0; set < num_sets; set++)
+    {
+        cache.sets[set].use_history = (uint8_t*) calloc(num_lines_per_set, sizeof(uint8_t));
+        cache.sets[set].lines = (Cache_Line_t*) malloc(num_lines_per_set * sizeof(Cache_Line_t));
+
+        for (int line = 0; line < num_lines_per_set; line++)
+        {
+            cache.sets[set].lines[line].valid = 0;
+            cache.sets[set].lines[line].tag = 0;
+        }
+    }
+
     FILE* trace_file = fopen(trace_file_name, "r");
 
     if (trace_file == NULL){
         fprintf(stderr, "Error: file not found\n");
         return 0;
     }
-
-    int hit_count = 0;
-    int miss_count = 0;
-    int eviction_count = 0;
-
-    int hit_count = 0;
-    int miss_count = 0;
-    int eviction_count = 0;
 
     char* line[20];
     while (fgets(line, sizeof(line), trace_file) != NULL) {
@@ -56,14 +86,16 @@ int main(int argc, char **argv)
 
         int address = getAddressFromLine(line);
         
-        loadFromMemory(address, &hit_count, &miss_count, &eviction_count);
+        loadFromMemory(&cache, address);
     }
 
-    printSummary(hit_count, miss_count, eviction_count);
+    printSummary(cache.hit_count, cache.miss_count, cache.eviction_count);
     return 0;
 }
 
-int loadFromMemory(unsigned int address, int* hit_count, int* miss_count, int*eviction_count){
+int loadFromMemory(Cache_t* cache, unsigned int address)
+{
+
     return 0;
 }
 
