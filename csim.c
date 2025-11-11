@@ -19,7 +19,8 @@
 
 int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name);
 int getAddressFromLine(char* line);
-int loadFromMemory(Cache_t* cache, unsigned int address);
+int loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
+void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_index, unsigned int* block_offset, int num_set_index_bits, int num_block_bits);
 
 typedef struct {
     uint8_t valid;
@@ -45,12 +46,21 @@ int main(int argc, char **argv)
     int num_block_bits;
     char* trace_file_name;
 
+    // Read command line arguments and verify
     if (!checkArgs(argc, argv, &num_set_index_bits, &num_lines_per_set, &num_block_bits, &trace_file_name)) 
     {
         fprintf(stderr, "Error: please include all required flags. Use -h flag for usage info.\n");
         return 0;
     }
 
+    // Open file
+    FILE* trace_file = fopen(trace_file_name, "r");
+    if (trace_file == NULL){
+        fprintf(stderr, "Error: file not found\n");
+        return 0;
+    }
+
+    // Create cache
     uint8_t num_sets = 1u << num_set_index_bits;
     Cache_t cache;
 
@@ -71,13 +81,6 @@ int main(int argc, char **argv)
         }
     }
 
-    FILE* trace_file = fopen(trace_file_name, "r");
-
-    if (trace_file == NULL){
-        fprintf(stderr, "Error: file not found\n");
-        return 0;
-    }
-
     char* line[20];
     while (fgets(line, sizeof(line), trace_file) != NULL) {
         if (line[0] != ' ') {
@@ -85,17 +88,24 @@ int main(int argc, char **argv)
         }
 
         int address = getAddressFromLine(line);
-        
-        loadFromMemory(&cache, address);
+
+        unsigned int tag;
+        unsigned int set_index;
+        unsigned int block_offset;
+
+        parseAddress(address, &tag, &set_index, &block_offset, num_set_index_bits, num_block_bits);
+
+        loadFromMemory(&cache, tag, set_index, block_offset);
     }
 
     printSummary(cache.hit_count, cache.miss_count, cache.eviction_count);
     return 0;
 }
 
-int loadFromMemory(Cache_t* cache, unsigned int address)
+int loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset)
 {
 
+    
     return 0;
 }
 
@@ -159,6 +169,7 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
 }
 
 int getAddressFromLine(char* line){
+
     char _type;
     int return_val;
     int _length;
@@ -166,4 +177,19 @@ int getAddressFromLine(char* line){
     sprintf(line, " %c %x,%d", _type, return_val, _length);
 
     return return_val;
+}
+
+// [t bits][s bits][b bits]
+void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_index, unsigned int* block_offset, int num_set_index_bits, int num_block_bits)
+{
+    unsigned int block_bit_mask = (1U << num_block_bits) - 1;
+    unsigned int set_bits_mask = (1U << num_set_index_bits) - 1;
+
+    *block_offset = address & block_bit_mask;
+
+    address >>= num_block_bits;
+    *set_index = address & set_bits_mask;
+
+    address >>= num_set_index_bits;
+    *tag = address;
 }
