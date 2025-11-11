@@ -19,8 +19,8 @@
 
 int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name);
 int getAddressFromLine(char* line);
-int loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
 void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_index, unsigned int* block_offset, int num_set_index_bits, int num_block_bits);
+int loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
 
 typedef struct {
     uint8_t valid;
@@ -102,16 +102,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-int loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset)
-{
 
-    
-    return 0;
-}
-
-/**
- * Return 1 if valid, 0 if not
- */
 int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name)
 {
     int hFlag = 0;
@@ -192,4 +183,11 @@ void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_ind
 
     address >>= num_set_index_bits;
     *tag = address;
+}
+
+int loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset)
+{
+
+    
+    return 0;
 }
