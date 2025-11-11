@@ -49,17 +49,14 @@ int main(int argc, char **argv)
     int eviction_count = 0;
 
     char* line[20];
-    while (line != NULL){ 
-        fgets(line, 20, trace_file);
-
-        if (line[0] != ' '){
-            continue; // skip instuction fetches
+    while (fgets(line, sizeof(line), trace_file) != NULL) {
+        if (line[0] != ' ') {
+            continue; // skip instruction fetches
         }
 
-        unsigned int address = getAddressFromLine(line);
+        int address = getAddressFromLine(line);
         
         loadFromMemory(address, &hit_count, &miss_count, &eviction_count);
-        int address = getAddressFromLine(line);
     }
 
     printSummary(hit_count, miss_count, eviction_count);
