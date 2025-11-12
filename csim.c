@@ -263,7 +263,7 @@ void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, uns
 
     for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
     {
-        if (set.lines[line_idx].tag == tag) {
+        if (set.lines[line_idx].tag == tag) { // Dont need to check vaid bit for store
             cache->hit_count++;
 
             updateCacheUseHistory(&set, line_idx, cache->num_lines_per_set);
