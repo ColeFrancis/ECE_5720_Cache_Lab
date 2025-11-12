@@ -17,10 +17,20 @@
 #include <stdint.h>
 #include "cachelab.h"
 
+void initCache(Cache_t* cache, int num_set_index_bits, int num_lines_per_set);
 int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name);
-int getAddressFromLine(char* line);
+INST_t getAddressFromLine(char* line, int* address);
 void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_index, unsigned int* block_offset, int num_set_index_bits, int num_block_bits);
-int loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
+void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
+void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
+void updateCacheUseHistory(Cache_Set_t* set, int line_idx, int num_lines);
+
+typedef enum {
+    M,
+    L,
+    S,
+    I
+} INST_t;
 
 typedef struct {
     uint8_t valid;
@@ -29,11 +39,15 @@ typedef struct {
 
 typedef struct {
     Cache_Line_t* lines;
+
     uint8_t* use_history;
 } Cache_Set_t;
 
 typedef struct {
     Cache_Set_t* sets;
+    uint32_t num_sets;
+    uint32_t num_lines_per_set;
+
     uint32_t hit_count;
     uint32_t miss_count;
     uint32_t eviction_count;
@@ -60,26 +74,8 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    // Create cache
-    uint8_t num_sets = 1u << num_set_index_bits;
     Cache_t cache;
-
-    cache.sets = (Cache_Set_t*) malloc(num_sets * sizeof(Cache_Set_t));
-    cache.hit_count = 0;
-    cache.miss_count = 0;
-    cache.eviction_count = 0;
-
-    for (int set = 0; set < num_sets; set++)
-    {
-        cache.sets[set].use_history = (uint8_t*) calloc(num_lines_per_set, sizeof(uint8_t));
-        cache.sets[set].lines = (Cache_Line_t*) malloc(num_lines_per_set * sizeof(Cache_Line_t));
-
-        for (int line = 0; line < num_lines_per_set; line++)
-        {
-            cache.sets[set].lines[line].valid = 0;
-            cache.sets[set].lines[line].tag = 0;
-        }
-    }
+    initCache(&cache, num_set_index_bits, num_lines_per_set);
 
     char* line[20];
     while (fgets(line, sizeof(line), trace_file) != NULL) {
@@ -87,7 +83,9 @@ int main(int argc, char **argv)
             continue; // skip instruction fetches
         }
 
-        int address = getAddressFromLine(line);
+        int address;
+         
+        INST_t inst_type = getAddressFromLine(line, &address);
 
         unsigned int tag;
         unsigned int set_index;
@@ -95,13 +93,54 @@ int main(int argc, char **argv)
 
         parseAddress(address, &tag, &set_index, &block_offset, num_set_index_bits, num_block_bits);
 
-        loadFromMemory(&cache, tag, set_index, block_offset);
+        switch (inst_type)
+        {
+        case M:
+            loadFromMemory(&cache, tag, set_index, block_offset);
+            storeToMemory(&cache, tag, set_index, block_offset);
+            break;
+
+        case L:
+            loadFromMemory(&cache, tag, set_index, block_offset);
+            break;
+
+        case S:
+            storeToMemory(&cache, tag, set_index, block_offset);
+            break;
+        
+        default:
+            break;
+        }
     }
 
     printSummary(cache.hit_count, cache.miss_count, cache.eviction_count);
     return 0;
 }
 
+void initCache(Cache_t* cache, int num_set_index_bits, int num_lines_per_set)
+{
+    uint8_t num_sets = 1u << num_set_index_bits;
+
+    cache->sets = (Cache_Set_t*) malloc(num_sets * sizeof(Cache_Set_t));
+    cache->num_sets = num_sets;
+    cache->num_lines_per_set = num_lines_per_set;
+
+    cache->hit_count = 0;
+    cache->miss_count = 0;
+    cache->eviction_count = 0;
+
+    for (int set = 0; set < num_sets; set++)
+    {
+        cache->sets[set].use_history = (uint8_t*) calloc(num_lines_per_set, sizeof(uint8_t));
+        cache->sets[set].lines = (Cache_Line_t*) malloc(num_lines_per_set * sizeof(Cache_Line_t));
+
+        for (int line = 0; line < num_lines_per_set; line++)
+        {
+            cache->sets[set].lines[line].valid = 0;
+            cache->sets[set].lines[line].tag = 0;
+        }
+    }
+}
 
 int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name)
 {
@@ -159,15 +198,30 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
     return s_flag_included && e_flag_included && b_flag_included && t_flag_included;
 }
 
-int getAddressFromLine(char* line){
+INST_t getAddressFromLine(char* line, int* address){
 
-    char _type;
+    char type = '\0';
     int return_val;
     int _length;
 
-    sprintf(line, " %c %x,%d", _type, return_val, _length);
+    sprintf(line, " %c %x,%d", type, return_val, _length);
 
-    return return_val;
+    *address = return_val;
+
+    switch (type)
+    {
+    case 'M':
+        return M;
+
+    case 'L':
+        return L;
+
+    case 'S':
+        return S;
+    
+    default: 
+        return I;
+    }
 }
 
 // [t bits][s bits][b bits]
@@ -185,9 +239,49 @@ void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_ind
     *tag = address;
 }
 
-int loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset)
+void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset)
 {
+    Cache_Set_t set = cache->sets[set_index];
 
+    for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
+    {
+        if (set.lines[line_idx].tag == tag && set.lines[line_idx].valid == 1) {
+            cache->hit_count++;
+
+            updateCacheUseHistory(&set, line_idx, cache->num_lines_per_set);
+            return; // no need to search rest of cache
+        }
+    }
+    // figure out miss and eviction count logic
     
     return 0;
+}
+
+void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset)
+{
+    Cache_Set_t set = cache->sets[set_index];
+
+    for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
+    {
+        if (set.lines[line_idx].tag == tag) {
+            cache->hit_count++;
+
+            updateCacheUseHistory(&set, line_idx, cache->num_lines_per_set);
+            return; // no need to search rest of cache
+        }
+    }
+
+    // figure out miss and eviction count logic
+    
+    return 0;
+}
+
+void updateCacheUseHistory(Cache_Set_t* set, int line_idx, int num_lines)
+{
+    for (int i = 0; i < num_lines; i++)
+    {
+        set->use_history[i]++;
+    }
+
+    set->use_history[line_idx] = 0;
 }
