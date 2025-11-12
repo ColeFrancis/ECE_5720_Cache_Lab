@@ -24,6 +24,7 @@ void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_ind
 void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
 void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
 void updateCacheUseHistory(Cache_Set_t* set, int line_idx, int num_lines);
+int getLRUIndex(Cache_Set_t* set, int num_lines_per_set);
 
 typedef enum {
     M,
@@ -77,7 +78,7 @@ int main(int argc, char **argv)
     Cache_t cache;
     initCache(&cache, num_set_index_bits, num_lines_per_set);
 
-    char* line[20];
+    char line[20];
     while (fgets(line, sizeof(line), trace_file) != NULL) {
         if (line[0] != ' ') {
             continue; // skip instruction fetches
@@ -249,12 +250,36 @@ void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, un
             cache->hit_count++;
 
             updateCacheUseHistory(&set, line_idx, cache->num_lines_per_set);
-            return; // no need to search rest of cache
+            return; // cache hit no need to search rest of cache
         }
     }
-    // figure out miss and eviction count logic
+
+    // cache miss
+    cache->miss_count++;
+
+    // see if any cache lines are not valid
+    for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
+    {
+        if (set.lines[line_idx].valid = 0){
+            // mark as valid and set the tag
+            set.lines[line_idx].valid = 1;
+            set.lines[line_idx].tag = tag;
+
+            updateCacheUseHistory(&set, line_idx, cache->num_lines_per_set);
+
+            return; // no need to evict
+        }
+    }
     
-    return 0;
+    // cache miss with eviction
+    cache->eviction_count++;
+
+    int LRU = getLRUIndex(&set, cache->num_lines_per_set);
+
+    set.lines[LRU].tag = tag;
+    set.lines[LRU].valid = 1;
+
+    updateCacheUseHistory(&set, LRU, cache->num_lines_per_set);
 }
 
 void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset)
@@ -263,17 +288,42 @@ void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, uns
 
     for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
     {
-        if (set.lines[line_idx].tag == tag) { // Dont need to check vaid bit for store
+        if (set.lines[line_idx].tag == tag && set.lines[line_idx].valid == 1) {
             cache->hit_count++;
+            
+            set.lines[line_idx].valid = 1;
 
             updateCacheUseHistory(&set, line_idx, cache->num_lines_per_set);
-            return; // no need to search rest of cache
+            return; // cache hit no need to search rest of cache
         }
     }
 
-    // figure out miss and eviction count logic
+    // cache miss
+    cache->miss_count++;
+
+    // see if any cache lines are not valid
+    for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
+    {
+        if (set.lines[line_idx].valid = 0){
+            // mark as valid and set the tag
+            set.lines[line_idx].valid = 1;
+            set.lines[line_idx].tag = tag;
+
+            updateCacheUseHistory(&set, line_idx, cache->num_lines_per_set);
+
+            return; // no need to evict
+        }
+    }
     
-    return 0;
+    // cache miss with eviction
+    cache->eviction_count++;
+
+    int LRU = getLRUIndex(&set, cache->num_lines_per_set);
+
+    set.lines[LRU].tag = tag;
+    set.lines[LRU].valid = 1;
+
+    updateCacheUseHistory(&set, LRU, cache->num_lines_per_set);
 }
 
 void updateCacheUseHistory(Cache_Set_t* set, int line_idx, int num_lines)
@@ -284,4 +334,14 @@ void updateCacheUseHistory(Cache_Set_t* set, int line_idx, int num_lines)
     }
 
     set->use_history[line_idx] = 0;
+}
+
+int getLRU(Cache_Set_t* set, int num_lines_per_set){
+    int LRU_idx = set->use_history[0];
+
+    for (int i = 0; i < num_lines_per_set; i++){
+        LRU_idx = LRU_idx > set->use_history[i] ? LRU_idx : set->use_history[i];
+    }
+
+    return LRU_idx;
 }
