@@ -17,6 +17,9 @@
 #include <stdint.h>
 #include "cachelab.h"
 
+#include "dump_cache.h"
+
+#ifndef USING_DUMP_CACHE
 typedef enum {
     M,
     L,
@@ -44,6 +47,7 @@ typedef struct {
     unsigned int miss_count;
     unsigned int eviction_count;
 } Cache_t;
+#endif
 
 void initCache(Cache_t* cache, unsigned int num_set_index_bits, unsigned int num_lines_per_set);
 unsigned int checkArgs(int argc, char** argv, unsigned int* num_set_index_bits, unsigned int* num_lines_per_set, unsigned int* num_block_bits, char** trace_file_name);
