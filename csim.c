@@ -17,6 +17,8 @@
 #include <stdint.h>
 #include "cachelab.h"
 
+// #define DEBUG
+
 #include "dump_cache.h"
 
 #ifndef USING_DUMP_CACHE
@@ -98,19 +100,27 @@ int main(int argc, char **argv)
 
         parseAddress(address, &tag, &set_index, &block_offset, num_set_index_bits, num_block_bits);
 
+        char debug[4] = {'M', 'L', 'S', 'I'};
+
+        printf("%c %u %u %u\n", debug[inst_type], tag, set_index, block_offset);
+
         switch (inst_type)
         {
         case M:
             loadFromMemory(&cache, tag, set_index);
+            dumpCache(&cache);
             storeToMemory(&cache, tag, set_index);
+            dumpCache(&cache);
             break;
 
         case L:
             loadFromMemory(&cache, tag, set_index);
+            dumpCache(&cache);
             break;
 
         case S:
             storeToMemory(&cache, tag, set_index);
+            dumpCache(&cache);
             break;
         
         default:
@@ -207,8 +217,9 @@ INST_t getAddressFromLine(char* line, unsigned int* address){
 
     char type = '\0';
     unsigned int return_val = 0;
+    int _ignore;
 
-    sprintf(line, " %c %x", type, return_val);
+    sscanf(line, " %c %x %d", &type, &return_val, &_ignore);
 
     *address = return_val;
 
@@ -340,10 +351,10 @@ void updateCacheUseHistory(Cache_Set_t* set, unsigned int line_idx, unsigned int
 }
 
 unsigned int getLRUIndex(Cache_Set_t* set, unsigned int num_lines_per_set){
-    unsigned int LRU_idx = set->use_history[0];
+    unsigned int LRU_idx = 0;
 
     for (unsigned int i = 0; i < num_lines_per_set; i++){
-        LRU_idx = LRU_idx > set->use_history[i] ? LRU_idx : set->use_history[i];
+        LRU_idx = set->use_history[LRU_idx] > set->use_history[i] ? LRU_idx : i;
     }
 
     return LRU_idx;

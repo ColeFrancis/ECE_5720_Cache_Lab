@@ -35,6 +35,7 @@ typedef struct {
 
 void dumpCache(Cache_t* cache) 
 {
+    #ifdef DEBUG
     printf("[tag  valid  use history]\n");
     for (unsigned int set = 0; set < cache->num_sets; set++) {
 
@@ -47,6 +48,9 @@ void dumpCache(Cache_t* cache)
         printf("\n");
     }
     printf("\n\thit count: %u\n\tmiss count: %u\n\teviction count: %u\n\n", cache->hit_count, cache->miss_count, cache->eviction_count);
+
+    getchar();
+    #endif
 }
 
 #endif
