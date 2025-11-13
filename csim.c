@@ -17,15 +17,6 @@
 #include <stdint.h>
 #include "cachelab.h"
 
-void initCache(Cache_t* cache, int num_set_index_bits, int num_lines_per_set);
-int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name);
-INST_t getAddressFromLine(char* line, int* address);
-void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_index, unsigned int* block_offset, int num_set_index_bits, int num_block_bits);
-void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
-void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset);
-void updateCacheUseHistory(Cache_Set_t* set, int line_idx, int num_lines);
-int getLRUIndex(Cache_Set_t* set, int num_lines_per_set);
-
 typedef enum {
     M,
     L,
@@ -34,31 +25,40 @@ typedef enum {
 } INST_t;
 
 typedef struct {
-    uint8_t valid;
-    uint32_t tag;
+    unsigned int valid;
+    unsigned int tag;
 } Cache_Line_t;
 
 typedef struct {
     Cache_Line_t* lines;
 
-    uint8_t* use_history;
+    unsigned int* use_history;
 } Cache_Set_t;
 
 typedef struct {
     Cache_Set_t* sets;
-    uint32_t num_sets;
-    uint32_t num_lines_per_set;
+    unsigned int num_sets;
+    unsigned int num_lines_per_set;
 
-    uint32_t hit_count;
-    uint32_t miss_count;
-    uint32_t eviction_count;
+    unsigned int hit_count;
+    unsigned int miss_count;
+    unsigned int eviction_count;
 } Cache_t;
+
+void initCache(Cache_t* cache, unsigned int num_set_index_bits, unsigned int num_lines_per_set);
+unsigned int checkArgs(int argc, char** argv, unsigned int* num_set_index_bits, unsigned int* num_lines_per_set, unsigned int* num_block_bits, char** trace_file_name);
+INST_t getAddressFromLine(char* line, unsigned int* address);
+void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_index, unsigned int* block_offset, unsigned int num_set_index_bits, unsigned int num_block_bits);
+void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index);
+void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index);
+void updateCacheUseHistory(Cache_Set_t* set, unsigned int line_idx, unsigned int num_lines);
+unsigned int getLRUIndex(Cache_Set_t* set, unsigned int num_lines_per_set);
 
 int main(int argc, char **argv)
 {
-    int num_set_index_bits;
-    int num_lines_per_set;
-    int num_block_bits;
+    unsigned int num_set_index_bits;
+    unsigned int num_lines_per_set;
+    unsigned int num_block_bits;
     char* trace_file_name;
 
     // Read command line arguments and verify
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
             continue; // skip instruction fetches
         }
 
-        int address;
+        unsigned int address;
          
         INST_t inst_type = getAddressFromLine(line, &address);
 
@@ -97,16 +97,16 @@ int main(int argc, char **argv)
         switch (inst_type)
         {
         case M:
-            loadFromMemory(&cache, tag, set_index, block_offset);
-            storeToMemory(&cache, tag, set_index, block_offset);
+            loadFromMemory(&cache, tag, set_index);
+            storeToMemory(&cache, tag, set_index);
             break;
 
         case L:
-            loadFromMemory(&cache, tag, set_index, block_offset);
+            loadFromMemory(&cache, tag, set_index);
             break;
 
         case S:
-            storeToMemory(&cache, tag, set_index, block_offset);
+            storeToMemory(&cache, tag, set_index);
             break;
         
         default:
@@ -114,13 +114,13 @@ int main(int argc, char **argv)
         }
     }
 
-    printSummary(cache.hit_count, cache.miss_count, cache.eviction_count);
+    printSummary((int)cache.hit_count, (int)cache.miss_count, (int)cache.eviction_count);
     return 0;
 }
 
-void initCache(Cache_t* cache, int num_set_index_bits, int num_lines_per_set)
+void initCache(Cache_t* cache, unsigned int num_set_index_bits, unsigned int num_lines_per_set)
 {
-    uint8_t num_sets = 1u << num_set_index_bits;
+    unsigned int num_sets = 1u << num_set_index_bits;
 
     cache->sets = (Cache_Set_t*) malloc(num_sets * sizeof(Cache_Set_t));
     cache->num_sets = num_sets;
@@ -130,12 +130,12 @@ void initCache(Cache_t* cache, int num_set_index_bits, int num_lines_per_set)
     cache->miss_count = 0;
     cache->eviction_count = 0;
 
-    for (int set = 0; set < num_sets; set++)
+    for (unsigned int set = 0; set < num_sets; set++)
     {
-        cache->sets[set].use_history = (uint8_t*) calloc(num_lines_per_set, sizeof(uint8_t));
+        cache->sets[set].use_history = (unsigned int*) calloc(num_lines_per_set, sizeof(unsigned int));
         cache->sets[set].lines = (Cache_Line_t*) malloc(num_lines_per_set * sizeof(Cache_Line_t));
 
-        for (int line = 0; line < num_lines_per_set; line++)
+        for (unsigned int line = 0; line < num_lines_per_set; line++)
         {
             cache->sets[set].lines[line].valid = 0;
             cache->sets[set].lines[line].tag = 0;
@@ -143,13 +143,13 @@ void initCache(Cache_t* cache, int num_set_index_bits, int num_lines_per_set)
     }
 }
 
-int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per_set, int* num_block_bits, char** trace_file_name)
+unsigned int checkArgs(int argc, char** argv, unsigned int* num_set_index_bits, unsigned int* num_lines_per_set, unsigned int* num_block_bits, char** trace_file_name)
 {
-    int hFlag = 0;
-    int s_flag_included = 0;
-    int e_flag_included = 0;
-    int b_flag_included = 0; 
-    int t_flag_included = 0;
+    unsigned int hFlag = 0;
+    unsigned int s_flag_included = 0;
+    unsigned int e_flag_included = 0;
+    unsigned int b_flag_included = 0; 
+    unsigned int t_flag_included = 0;
 
     // Iterate through argv
     for (int i = 1; i < argc; i++) {
@@ -157,21 +157,21 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
             hFlag = 1;
         }
         else if (strcmp(argv[i], "-s") == 0 && (i+1 < argc)) {
-            if ( !(*num_set_index_bits = atoi(argv[i+1])) ) 
+            if ( !(*num_set_index_bits = (unsigned int)atoi(argv[i+1])) ) 
                 break;
 
             i++; // inc i to skip over contents of flag
             s_flag_included = 1;
         }
         else if (strcmp(argv[i], "-E") == 0 && (i+1 < argc)) {
-            if ( !(*num_lines_per_set = atoi(argv[i+1])) ) 
+            if ( !(*num_lines_per_set = (unsigned int)atoi(argv[i+1])) ) 
                 break;
 
             i++; // inc i to skip over contents of flag
             e_flag_included = 1;
         }
         else if (strcmp(argv[i], "-b") == 0 && (i+1 < argc)) {
-            if ( !(*num_block_bits = atoi(argv[i+1])) ) 
+            if ( !(*num_block_bits = (unsigned int)atoi(argv[i+1])) ) 
                 break;
 
             i++; // inc i to skip over contents of flag
@@ -199,13 +199,12 @@ int checkArgs(int argc, char** argv, int* num_set_index_bits, int* num_lines_per
     return s_flag_included && e_flag_included && b_flag_included && t_flag_included;
 }
 
-INST_t getAddressFromLine(char* line, int* address){
+INST_t getAddressFromLine(char* line, unsigned int* address){
 
     char type = '\0';
-    int return_val;
-    int _length;
+    unsigned int return_val = 0;
 
-    sprintf(line, " %c %x,%d", type, return_val, _length);
+    sprintf(line, " %c %x", type, return_val);
 
     *address = return_val;
 
@@ -226,7 +225,7 @@ INST_t getAddressFromLine(char* line, int* address){
 }
 
 // [t bits][s bits][b bits]
-void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_index, unsigned int* block_offset, int num_set_index_bits, int num_block_bits)
+void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_index, unsigned int* block_offset, unsigned int num_set_index_bits, unsigned int num_block_bits)
 {
     unsigned int block_bit_mask = (1U << num_block_bits) - 1;
     unsigned int set_bits_mask = (1U << num_set_index_bits) - 1;
@@ -240,11 +239,11 @@ void parseAddress(unsigned int address, unsigned int* tag, unsigned int* set_ind
     *tag = address;
 }
 
-void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset)
+void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index)
 {
     Cache_Set_t set = cache->sets[set_index];
 
-    for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
+    for (unsigned int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
     {
         if (set.lines[line_idx].tag == tag && set.lines[line_idx].valid == 1) {
             cache->hit_count++;
@@ -258,9 +257,9 @@ void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, un
     cache->miss_count++;
 
     // see if any cache lines are not valid
-    for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
+    for (unsigned int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
     {
-        if (set.lines[line_idx].valid = 0){
+        if (set.lines[line_idx].valid == 0){
             // mark as valid and set the tag
             set.lines[line_idx].valid = 1;
             set.lines[line_idx].tag = tag;
@@ -274,7 +273,7 @@ void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, un
     // cache miss with eviction
     cache->eviction_count++;
 
-    int LRU = getLRUIndex(&set, cache->num_lines_per_set);
+    unsigned int LRU = getLRUIndex(&set, cache->num_lines_per_set);
 
     set.lines[LRU].tag = tag;
     set.lines[LRU].valid = 1;
@@ -282,11 +281,11 @@ void loadFromMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, un
     updateCacheUseHistory(&set, LRU, cache->num_lines_per_set);
 }
 
-void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, unsigned int block_offset)
+void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index)
 {
     Cache_Set_t set = cache->sets[set_index];
 
-    for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
+    for (unsigned int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
     {
         if (set.lines[line_idx].tag == tag && set.lines[line_idx].valid == 1) {
             cache->hit_count++;
@@ -302,9 +301,9 @@ void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, uns
     cache->miss_count++;
 
     // see if any cache lines are not valid
-    for (int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
+    for (unsigned int line_idx = 0; line_idx < cache->num_lines_per_set; line_idx++) 
     {
-        if (set.lines[line_idx].valid = 0){
+        if (set.lines[line_idx].valid == 0){
             // mark as valid and set the tag
             set.lines[line_idx].valid = 1;
             set.lines[line_idx].tag = tag;
@@ -318,7 +317,7 @@ void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, uns
     // cache miss with eviction
     cache->eviction_count++;
 
-    int LRU = getLRUIndex(&set, cache->num_lines_per_set);
+    unsigned int LRU = getLRUIndex(&set, cache->num_lines_per_set);
 
     set.lines[LRU].tag = tag;
     set.lines[LRU].valid = 1;
@@ -326,9 +325,9 @@ void storeToMemory(Cache_t* cache, unsigned int tag, unsigned int set_index, uns
     updateCacheUseHistory(&set, LRU, cache->num_lines_per_set);
 }
 
-void updateCacheUseHistory(Cache_Set_t* set, int line_idx, int num_lines)
+void updateCacheUseHistory(Cache_Set_t* set, unsigned int line_idx, unsigned int num_lines)
 {
-    for (int i = 0; i < num_lines; i++)
+    for (unsigned int i = 0; i < num_lines; i++)
     {
         set->use_history[i]++;
     }
@@ -336,10 +335,10 @@ void updateCacheUseHistory(Cache_Set_t* set, int line_idx, int num_lines)
     set->use_history[line_idx] = 0;
 }
 
-int getLRU(Cache_Set_t* set, int num_lines_per_set){
-    int LRU_idx = set->use_history[0];
+unsigned int getLRUIndex(Cache_Set_t* set, unsigned int num_lines_per_set){
+    unsigned int LRU_idx = set->use_history[0];
 
-    for (int i = 0; i < num_lines_per_set; i++){
+    for (unsigned int i = 0; i < num_lines_per_set; i++){
         LRU_idx = LRU_idx > set->use_history[i] ? LRU_idx : set->use_history[i];
     }
 
