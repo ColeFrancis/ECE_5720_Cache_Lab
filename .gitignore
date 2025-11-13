@@ -1,1 +1,9 @@
 build/
+.vscode
+CMake*
+cmake*
+csim
+test-trans
+tests/file_read_test
+tracegen
+Makefile
