@@ -76,7 +76,7 @@ void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
                 for (int block_offset_y = 0; block_offset_y < BLOCKSIZE; block_offset_y++)
                 {
                     int temp = A[block_x+block_offset_x][block_y+block_offset_y];
-                    B[block_x+block_offset_x][block_y+block_offset_y] = temp;
+                    B[block_y+block_offset_y][block_x+block_offset_x] = temp;
                 }
             }
         }
