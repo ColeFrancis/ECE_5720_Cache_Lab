@@ -62,6 +62,45 @@ void transpose_reversed(int M, int N, int A[N][M], int B[M][N])
     } 
 }
 
+#define BLOCKSIZE (16)
+
+char transpose_blocks_desc[] = "Transpose Blocks";
+void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
+{
+    for (int block_x = 0; block_x < M; block_x += BLOCKSIZE)
+    {
+        for (int block_y = 0; block_y < N; block_y += BLOCKSIZE)
+        {
+            for (int block_offset_x = 0; block_offset_x < BLOCKSIZE; block_offset_x++)
+            {
+                for (int block_offset_y = 0; block_offset_y < BLOCKSIZE; block_offset_y++)
+                {
+                    int temp = A[block_x+block_offset_x][block_y+block_offset_y];
+                    B[block_x+block_offset_x][block_y+block_offset_y] = temp;
+                }
+            }
+        }
+    }
+}
+
+void transpose_blocks_param(int M, int N, int A[N][M], int B[M][N], int blocksize_x, int blocksize_y)
+{
+    for (int block_x = 0; block_x < M; block_x += blocksize_x)
+    {
+        for (int block_y = 0; block_y < N; block_y += blocksize_y)
+        {
+            for (int block_offset_x = 0; block_offset_x < blocksize_x; block_offset_x++)
+            {
+                for (int block_offset_y = 0; block_offset_y < blocksize_y; block_offset_y++)
+                {
+                    int temp = A[block_x+block_offset_x][block_y+block_offset_y];
+                    B[block_x+block_offset_x][block_y+block_offset_y] = temp;
+                }
+            }
+        }
+    }
+}
+
 /*
  * registerFunctions - This function registers your transpose
  *     functions with the driver.  At runtime, the driver will
