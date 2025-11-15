@@ -62,41 +62,97 @@ void transpose_reversed(int M, int N, int A[N][M], int B[M][N])
     } 
 }
 
-#define BLOCKSIZE (16)
+#define BLOCKSIZE (32)
 
 char transpose_blocks_desc[] = "Transpose Blocks";
 void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
 {
-    for (int block_x = 0; block_x < M; block_x += BLOCKSIZE)
+    transpose_blocks_param(M, N, A, B, BLOCKSIZE, BLOCKSIZE);
+}
+
+void transpose_blocks_param(int M, int N, int A[N][M], int B[M][N], int blocksize_x, int blocksize_y)
+{
+    for (int block_j = 0; block_j < M; block_j += blocksize_y)  // columns of A
     {
-        for (int block_y = 0; block_y < N; block_y += BLOCKSIZE)
+        for (int block_i = 0; block_i < N; block_i += blocksize_x)  // rows of A
         {
-            for (int block_offset_x = 0; block_offset_x < BLOCKSIZE; block_offset_x++)
+            for (int offset_i = 0; offset_i < blocksize_x; offset_i++)
             {
-                for (int block_offset_y = 0; block_offset_y < BLOCKSIZE; block_offset_y++)
+                for (int offset_j = 0; offset_j < blocksize_y; offset_j++)
                 {
-                    int temp = A[block_y+block_offset_y][block_x+block_offset_x];
-                    B[block_x+block_offset_x][block_y+block_offset_y] = temp;
+                    int i = block_i + offset_i;
+                    int j = block_j + offset_j;
+
+                    if (i < N && j < M)  // boundary check
+                    {
+                        int temp = A[i][j];
+                        B[j][i] = temp;
+                    }
                 }
             }
         }
     }
 }
 
-void transpose_blocks_param(int M, int N, int A[N][M], int B[M][N], int blocksize_x, int blocksize_y)
+char transpose_tiled_desc[] = "Transpose tiled";
+void transpose_tiled(int M, int N, int A[N][M], int B[M][N])
 {
-    for (int block_x = 0; block_x < M; block_x += blocksize_x)
-    {
-        for (int block_y = 0; block_y < N; block_y += blocksize_y)
-        {
-            for (int block_offset_x = 0; block_offset_x < blocksize_x; block_offset_x++)
-            {
-                for (int block_offset_y = 0; block_offset_y < blocksize_y; block_offset_y++)
-                {
-                    int temp = A[block_x+block_offset_x][block_y+block_offset_y];
-                    B[block_x+block_offset_x][block_y+block_offset_y] = temp;
-                }
+    int i, j, tmp;
+    for (i = 0; i < 32; i++){
+        for (j = i; j < 32; j++){
+            tmp = B[i][j];
+            B[i][j] = A[j][i];
+            A[j][i] = tmp;
+        }
+    }
+}
+
+char transpose_triangle_desc[] = "Transpose tiled";
+void transpose_triangle(int M, int N, int A[N][M], int B[M][N])
+{
+    int i, j, tmp;
+
+    for (i = 0; i < N; i++) {
+        for (j = i; j < M; j++) {
+            if (i != j){
+                B[i][j] = A[j][i];
+                B[j][i] = A[i][j];
             }
+        }
+    }    
+
+}
+
+char hyper_32_desc[] = "hyper_32";
+void hyper_32(int M, int N, int A[N][M], int B[M][N])
+{
+    int i, j, tmp;
+
+    if (M != 32){
+        return;
+    }
+
+    for (i = 0; i < 16; i++){
+        for (j = 0; j < 16; j++){
+            B[j][i] = A[i][j];
+        }
+    }
+
+    for (i = 0; i < 16; i++){
+        for (j = 16; j < 32; j++){
+            B[j][i] = A[i][j];
+        }
+    }
+
+    for (i = 16; i < 32; i++){
+        for (j = 0; j < 16; j++){
+            B[j][i] = A[i][j];
+        }
+    }
+
+    for (i = 16; i < 32; i++){
+        for (j = 16; j < 32; j++){
+            B[j][i] = A[i][j];
         }
     }
 }
@@ -111,12 +167,15 @@ void transpose_blocks_param(int M, int N, int A[N][M], int B[M][N], int blocksiz
 void registerFunctions(void)
 {
     /* Register your solution function */
-    registerTransFunction(transpose_submit, transpose_submit_desc); 
+    // registerTransFunction(transpose_submit, transpose_submit_desc); 
 
     /* Register any additional transpose functions */
-    registerTransFunction(trans, trans_desc);
-    registerTransFunction(transpose_reversed, transpose_reversed_desc);
-
+    // registerTransFunction(trans, trans_desc);
+    // registerTransFunction(transpose_reversed, transpose_reversed_desc);
+    registerTransFunction(transpose_blocks, transpose_blocks_desc);
+    // registerTransFunction(transpose_tiled, transpose_tiled_desc);
+    // registerTransFunction(transpose_triangle, transpose_triangle_desc);
+    // registerTransFunction(hyper_32, hyper_32_desc);
 }
 
 /* 
