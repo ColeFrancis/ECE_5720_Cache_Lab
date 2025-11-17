@@ -25,43 +25,46 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
-    if (M == N && M == 32){
-        for (int i_block = 0; i_block < M; i_block += 8)  
+    int j_block, i_block, i, j, temp;
+    if ((M == N && M == 32) || (M == 61 && N == 67)){
+        for (j_block = 0; j_block < M; j_block += 8)  // M: columns of A
         {
-            for (int j_block = 0; j_block < N; j_block += 8)
+            for (i_block = 0; i_block < N; i_block += 8)  // N: rows of A
             {
                 if (i_block == j_block)
                 {
-                    for (int i = i_block; i < i_block + 8; i++) 
+                    for (i = i_block; i < i_block + 8 && i < N; i++) 
                     {
-                        int temp = -1;
-                        for (int j = j_block; j < j_block + 8; j++)
+                        temp = -1;
+                        for (j = j_block; j < j_block + 8 && j < M; j++)
                         {
-                            if (j == i){
-                                temp = A[j][i]; 
-                            }
-                            else{
-                                B[i][j] = A[j][i];
+                            if (j == i) {
+                                temp = A[i][j];
+                            } else {
+                                B[j][i] = A[i][j];
                             }
                         }
-
                         B[i][i] = temp;
                     }
                 }
                 else
                 {
-                    for (int i = i_block; i < i_block + 8; i++) 
+                    for (i = i_block; i < i_block + 8 && i < N; i++) 
                     {
-                        for (int j = j_block; j < j_block + 8; j++)
+                        for (j = j_block; j < j_block + 8 && j < M; j++)
                         {
-                            B[i][j] = A[j][i];
+                            B[j][i] = A[i][j];
                         }
                     }
                 }
             }
         }  
     }
+    else {
+        // later
+    }
 }
+
 
 /* 
  * You can define additional transpose functions below. We've defined
