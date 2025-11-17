@@ -62,10 +62,28 @@ void transpose_reversed(int M, int N, int A[N][M], int B[M][N])
     } 
 }
 
-#define BLOCKSIZE (8)
+#define BLOCK_SIZE (8)
 
-char transpose_blocks_desc[] = "Transpose Blocks";
-void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
+char transpose_blocks_naive_desc[] = "Transpose Blocks Naive";
+void transpose_blocks_naive(int M, int N, int A[N][M], int B[M][N])
+{
+    // transpose_blocks_param(M, N, A, B, BLOCKSIZE, BLOCKSIZE);
+    for (int i_block = 0; i_block < M; i_block += BLOCK_SIZE)  
+    {
+        for (int j_block = 0; j_block < N; j_block += BLOCK_SIZE)
+        {
+            for (int i = i_block; i < i_block + BLOCK_SIZE; i++) 
+            {
+                for (int j = j_block; j < j_block + BLOCK_SIZE; j++)
+                {
+                    B[i][j] = A[j][i];
+                }
+            }
+        }
+    }  
+}
+
+/*void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
 {
     // transpose_blocks_param(M, N, A, B, BLOCKSIZE, BLOCKSIZE);
     for (int block_j = 0; block_j < M; block_j += BLOCKSIZE)  // columns of A
@@ -90,7 +108,7 @@ void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
             }  
         }
     }
-}
+}*/
 
 void transpose_blocks_param(int M, int N, int A[N][M], int B[M][N], int blocksize_x, int blocksize_y)
 {
@@ -205,7 +223,7 @@ void registerFunctions(void)
     /* Register any additional transpose functions */
     // registerTransFunction(trans, trans_desc);
     // registerTransFunction(transpose_reversed, transpose_reversed_desc);
-    registerTransFunction(transpose_blocks, transpose_blocks_desc);
+    registerTransFunction(transpose_blocks_naive, transpose_blocks_naive_desc);
     // registerTransFunction(transpose_tiled, transpose_tiled_desc);
     // registerTransFunction(transpose_triangle, transpose_triangle_desc);
     // registerTransFunction(hyper_32, hyper_32_desc);
