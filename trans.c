@@ -25,6 +25,42 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
+    if (M == N && M == 32){
+        for (int i_block = 0; i_block < M; i_block += 8)  
+        {
+            for (int j_block = 0; j_block < N; j_block += 8)
+            {
+                if (i_block == j_block)
+                {
+                    for (int i = i_block; i < i_block + 8; i++) 
+                    {
+                        int temp = -1;
+                        for (int j = j_block; j < j_block + 8; j++)
+                        {
+                            if (j == i){
+                                temp = A[j][i]; 
+                            }
+                            else{
+                                B[i][j] = A[j][i];
+                            }
+                        }
+
+                        B[i][i] = temp;
+                    }
+                }
+                else
+                {
+                    for (int i = i_block; i < i_block + 8; i++) 
+                    {
+                        for (int j = j_block; j < j_block + 8; j++)
+                        {
+                            B[i][j] = A[j][i];
+                        }
+                    }
+                }
+            }
+        }  
+    }
 }
 
 /* 
@@ -81,6 +117,67 @@ void transpose_blocks_naive(int M, int N, int A[N][M], int B[M][N])
             }
         }
     }  
+}
+
+char transpose_blocks_diagonal_desc[] = "Transpose Blocks diagonal";
+void transpose_blocks_diagonal(int M, int N, int A[N][M], int B[M][N])
+{
+    for (int block_j = 0; block_j < M; block_j += BLOCK_SIZE)
+    {
+        for (int block_i = 0; block_i < N; block_i += BLOCK_SIZE)
+        {
+            if (block_j == block_i) // diagonal block
+            {
+                for (int offset_i = 0; offset_i < BLOCK_SIZE; offset_i++)
+                {
+                    int i = block_i + offset_i;
+
+                    int temp = 0;      // temp for diagonal element
+                    int diag_index = -1;
+
+                    for (int offset_j = 0; offset_j < BLOCK_SIZE; offset_j++)
+                    {
+                        int j = block_j + offset_j;
+
+                        if (i < N && j < M)
+                        {
+                            if (i != j)
+                            {
+                                B[j][i] = A[i][j];
+                            }
+                            else
+                            {
+                                temp = A[i][j];
+                                diag_index = i;
+                            }
+                        }
+                    }
+
+                    // write diagonal element AFTER processing the row
+                    if (diag_index != -1)
+                    {
+                        B[diag_index][diag_index] = temp;
+                    }
+                }
+            }
+            else // off-diagonal blocks
+            {
+                for (int offset_i = 0; offset_i < BLOCK_SIZE; offset_i++)
+                {
+                    for (int offset_j = 0; offset_j < BLOCK_SIZE; offset_j++)
+                    {
+                        int i = block_i + offset_i;
+                        int j = block_j + offset_j;
+
+                        if (i < N && j < M)
+                        {
+                            B[j][i] = A[i][j];
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /*void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
@@ -218,12 +315,13 @@ void hyper_32(int M, int N, int A[N][M], int B[M][N])
 void registerFunctions(void)
 {
     /* Register your solution function */
-    // registerTransFunction(transpose_submit, transpose_submit_desc); 
+    registerTransFunction(transpose_submit, transpose_submit_desc); 
 
     /* Register any additional transpose functions */
     // registerTransFunction(trans, trans_desc);
     // registerTransFunction(transpose_reversed, transpose_reversed_desc);
-    registerTransFunction(transpose_blocks_naive, transpose_blocks_naive_desc);
+    //registerTransFunction(transpose_blocks_naive, transpose_blocks_naive_desc);
+    registerTransFunction(transpose_blocks_diagonal, transpose_blocks_diagonal_desc);
     // registerTransFunction(transpose_tiled, transpose_tiled_desc);
     // registerTransFunction(transpose_triangle, transpose_triangle_desc);
     // registerTransFunction(hyper_32, hyper_32_desc);
