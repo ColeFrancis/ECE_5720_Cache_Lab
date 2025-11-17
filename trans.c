@@ -62,12 +62,34 @@ void transpose_reversed(int M, int N, int A[N][M], int B[M][N])
     } 
 }
 
-#define BLOCKSIZE (16)
+#define BLOCKSIZE (8)
 
 char transpose_blocks_desc[] = "Transpose Blocks";
 void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
 {
-    transpose_blocks_param(M, N, A, B, BLOCKSIZE, BLOCKSIZE);
+    // transpose_blocks_param(M, N, A, B, BLOCKSIZE, BLOCKSIZE);
+    for (int block_j = 0; block_j < M; block_j += BLOCKSIZE)  // columns of A
+    {
+        for (int block_i = 0; block_i < N; block_i += BLOCKSIZE)  // rows of A
+        {
+            if (block_j == block_i) {
+                // diagonal tile: swap inner loops compared to off-diagonal tiles
+                
+            } else {
+                // off-diagonal tiles
+                for (int offset_j = 0; offset_j < BLOCKSIZE; offset_j++) {
+                    for (int offset_i = 0; offset_i < BLOCKSIZE; offset_i++) {
+                        int i = block_i + offset_i;
+                        int j = block_j + offset_j;
+
+                        if (i < N && j < M) {
+                            B[j][i] = A[i][j];
+                        }
+                    }
+                }
+            }  
+        }
+    }
 }
 
 void transpose_blocks_param(int M, int N, int A[N][M], int B[M][N], int blocksize_x, int blocksize_y)
@@ -76,20 +98,31 @@ void transpose_blocks_param(int M, int N, int A[N][M], int B[M][N], int blocksiz
     {
         for (int block_i = 0; block_i < N; block_i += blocksize_x)  // rows of A
         {
-            for (int offset_i = 0; offset_i < blocksize_x; offset_i++)
-            {
-                for (int offset_j = 0; offset_j < blocksize_y; offset_j++)
-                {
-                    int i = block_i + offset_i;
-                    int j = block_j + offset_j;
+            if (block_j == block_i) {
+                // diagonal tile: swap inner loops compared to off-diagonal tiles
+                for (int offset_i = 0; offset_i < blocksize_x; offset_i++) {
+                    for (int offset_j = 0; offset_j < blocksize_y; offset_j++) {
+                        int i = block_i + offset_i;
+                        int j = block_j + offset_j;
 
-                    if (i < N && j < M)  // boundary check
-                    {
-                        int temp = A[i][j];
-                        B[j][i] = temp;
+                        if (i < N && j < M) {
+                            B[j][i] = A[i][j];
+                        }
                     }
                 }
-            }
+            } else {
+                // off-diagonal tiles
+                for (int offset_j = 0; offset_j < blocksize_y; offset_j++) {
+                    for (int offset_i = 0; offset_i < blocksize_x; offset_i++) {
+                        int i = block_i + offset_i;
+                        int j = block_j + offset_j;
+
+                        if (i < N && j < M) {
+                            B[j][i] = A[i][j];
+                        }
+                    }
+                }
+            }  
         }
     }
 }
