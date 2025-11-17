@@ -62,7 +62,7 @@ void transpose_reversed(int M, int N, int A[N][M], int B[M][N])
     } 
 }
 
-#define BLOCKSIZE (32)
+#define BLOCKSIZE (16)
 
 char transpose_blocks_desc[] = "Transpose Blocks";
 void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
