@@ -25,7 +25,7 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
-    int j_block, i_block, i, j, temp, temp2;
+    int j_block, i_block, i, j, temp_0, temp_1, temp_2, temp_3;
 
     if ((M == N && M == 32) || (M == 61 && N == 67)){
         for (j_block = 0; j_block < M; j_block += 8)  // M: columns of A
@@ -36,16 +36,16 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
                 {
                     for (i = i_block; i < i_block + 8 && i < N; i++) 
                     {
-                        temp = -1;
+                        temp_0 = -1;
                         for (j = j_block; j < j_block + 8 && j < M; j++)
                         {
                             if (j == i) {
-                                temp = A[i][j];
+                                temp_0 = A[i][j];
                             } else {
                                 B[j][i] = A[i][j];
                             }
                         }
-                        B[i][i] = temp;
+                        B[i][i] = temp_0;
                     }
                 }
                 else
@@ -62,442 +62,296 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
         }
     }
     else {
-        // top left block
-        for (j_block = 0; j_block < 32; j_block += 4)  // M: columns of A
-        {
-            for (i_block = 0; i_block < 32; i_block += 4)  // N: rows of A
-            {
-                if (i_block == j_block)
-                {
-                    for (i = i_block; i < i_block + 4 && i < N; i++) 
-                    {
-                        temp = -1;
-                        for (j = j_block; j < j_block + 4 && j < M; j++)
-                        {
-                            if (j == i) {
-                                temp = A[i][j];
-                            } else {
-                                B[j][i] = A[i][j];
-                            }
-                        }
-                        B[i][i] = temp;
-                    }
-                }
-                else
-                {
-                    for (i = i_block; i < i_block + 4 && i < N; i++) 
-                    {
-                        for (j = j_block; j < j_block + 4 && j < M; j++)
-                        {
-                            B[j][i] = A[i][j];
-                        }
-                    }
-                }
-            }
-        }
+        int off_i, off_j;
+        for (off_i = 0; off_i <= 32; off_i += 32) {
+            for (off_j = 0; off_j <= 32; off_j += 32) {
 
-        // bottom right block
+                /* Now tile 4×4 inside this quadrant */
+                for (j_block = off_j; j_block < off_j + 32; j_block += 4) {
+                    for (i_block = off_i; i_block < off_i + 32; i_block += 4) {
 
-        for (j_block = 32; j_block < M; j_block += 4)  // M: columns of A
-        {
-            for (i_block = 32; i_block < N; i_block += 4)  // N: rows of A
-            {
-                if (i_block == j_block)
-                {
-                    for (i = i_block; i < i_block + 4 && i < N; i++) 
-                    {
-                        temp = -1;
-                        for (j = j_block; j < j_block + 4 && j < M; j++)
-                        {
-                            if (j == i) {
-                                temp = A[i][j];
-                            } else {
-                                B[j][i] = A[i][j];
-                            }
-                        }
-                        B[i][i] = temp;
-                    }
-                }
-                else
-                {
-                    for (i = i_block; i < i_block + 4 && i < N; i++) 
-                    {
-                        for (j = j_block; j < j_block + 4 && j < M; j++)
-                        {
-                            B[j][i] = A[i][j];
-                        }
-                    }
-                }
-            }
-        }
+                        for (i = i_block; i < i_block + 4 && i < N; i++) {
+                            temp_0 = A[i][j_block + 0];
+                            temp_1 = A[i][j_block + 1];
+                            temp_2 = A[i][j_block + 2];
+                            temp_3 = A[i][j_block + 3];
 
-        // top left block
-        for (j_block = 32; j_block < M; j_block += 4)  // M: columns of A
-        {
-            for (i_block = 0; i_block < 32; i_block += 4)  // N: rows of A
-            {
-                if (i_block == j_block)
-                {
-                    for (i = i_block; i < i_block + 4 && i < N; i++) 
-                    {
-                        temp = -1;
-                        for (j = j_block; j < j_block + 4 && j < M; j++)
-                        {
-                            if (j == i) {
-                                temp = A[i][j];
-                            } else {
-                                B[j][i] = A[i][j];
-                            }
+                            B[j_block + 0][i] = temp_0;
+                            B[j_block + 1][i] = temp_1;
+                            B[j_block + 2][i] = temp_2;
+                            B[j_block + 3][i] = temp_3;
                         }
-                        B[i][i] = temp;
-                    }
-                }
-                else
-                {
-                    for (i = i_block; i < i_block + 4 && i < N; i++) 
-                    {
-                        for (j = j_block; j < j_block + 4 && j < M; j++)
-                        {
-                            B[j][i] = A[i][j];
-                        }
-                    }
-                }
-            }
-        }
 
-        // bottom right block
-        for (j_block = 0; j_block < 32; j_block += 4)  // M: columns of A
-        {
-            for (i_block = 32; i_block < N; i_block += 4)  // N: rows of A
-            {
-                if (i_block == j_block)
-                {
-                    for (i = i_block; i < i_block + 4 && i < N; i++) 
-                    {
-                        temp = -1;
-                        for (j = j_block; j < j_block + 4 && j < M; j++)
-                        {
-                            if (j == i) {
-                                temp = A[i][j];
-                            } else {
-                                B[j][i] = A[i][j];
-                            }
-                        }
-                        B[i][i] = temp;
                     }
                 }
-                else
-                {
-                    for (i = i_block; i < i_block + 4 && i < N; i++) 
-                    {
-                        for (j = j_block; j < j_block + 4 && j < M; j++)
-                        {
-                            B[j][i] = A[i][j];
-                        }
-                    }
-                }
+
             }
         }
     }
 }
 
 
-/* 
- * You can define additional transpose functions below. We've defined
- * a simple one below to help you get started. 
- */ 
+// /* 
+//  * You can define additional transpose functions below. We've defined
+//  * a simple one below to help you get started. 
+//  */ 
 
-/* 
- * trans - A simple baseline transpose function, not optimized for the cache.
- */
-char trans_desc[] = "Simple row-wise scan transpose";
-void trans(int M, int N, int A[N][M], int B[M][N])
-{
-    int i, j, tmp;
+// /* 
+//  * trans - A simple baseline transpose function, not optimized for the cache.
+//  */
+// char trans_desc[] = "Simple row-wise scan transpose";
+// void trans(int M, int N, int A[N][M], int B[M][N])
+// {
+//     int i, j, tmp;
 
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < M; j++) {
-            tmp = A[i][j];
-            B[j][i] = tmp;
-        }
-    }    
+//     for (i = 0; i < N; i++) {
+//         for (j = 0; j < M; j++) {
+//             tmp = A[i][j];
+//             B[j][i] = tmp;
+//         }
+//     }    
 
-}
+// }
 
-char transpose_reversed_desc[] = "Transpose Reversed";
-void transpose_reversed(int M, int N, int A[N][M], int B[M][N])
-{
-    int i, j, tmp;
+// char transpose_reversed_desc[] = "Transpose Reversed";
+// void transpose_reversed(int M, int N, int A[N][M], int B[M][N])
+// {
+//     int i, j, tmp;
 
-    for (j = 0; j < M; j++) {
-        for (i = 0; i < N; i++) {
-            tmp = A[i][j];
-            B[j][i] = tmp;
-        }
-    } 
-}
+//     for (j = 0; j < M; j++) {
+//         for (i = 0; i < N; i++) {
+//             tmp = A[i][j];
+//             B[j][i] = tmp;
+//         }
+//     } 
+// }
 
-#define BLOCK_SIZE (4)
+// #define BLOCK_SIZE (4)
 
-char transpose_blocks_naive_desc[] = "Transpose Blocks Naive";
-void transpose_blocks_naive(int M, int N, int A[N][M], int B[M][N])
-{
-    // transpose_blocks_param(M, N, A, B, BLOCKSIZE, BLOCKSIZE);
-    for (int i_block = 0; i_block < M; i_block += BLOCK_SIZE)  
-    {
-        for (int j_block = 0; j_block < N; j_block += BLOCK_SIZE)
-        {
-            for (int i = i_block; i < i_block + BLOCK_SIZE; i++) 
-            {
-                for (int j = j_block; j < j_block + BLOCK_SIZE; j++)
-                {
-                    B[i][j] = A[j][i];
-                }
-            }
-        }
-    }  
-}
+// char transpose_blocks_naive_desc[] = "Transpose Blocks Naive";
+// void transpose_blocks_naive(int M, int N, int A[N][M], int B[M][N])
+// {
+//     // transpose_blocks_param(M, N, A, B, BLOCKSIZE, BLOCKSIZE);
+//     for (int i_block = 0; i_block < M; i_block += BLOCK_SIZE)  
+//     {
+//         for (int j_block = 0; j_block < N; j_block += BLOCK_SIZE)
+//         {
+//             for (int i = i_block; i < i_block + BLOCK_SIZE; i++) 
+//             {
+//                 for (int j = j_block; j < j_block + BLOCK_SIZE; j++)
+//                 {
+//                     B[i][j] = A[j][i];
+//                 }
+//             }
+//         }
+//     }  
+// }
 
-char transpose_blocks_diagonal_desc[] = "Transpose Blocks diagonal";
-void transpose_blocks_diagonal(int M, int N, int A[N][M], int B[M][N])
-{
-    for (int block_j = 0; block_j < M; block_j += BLOCK_SIZE)
-    {
-        for (int block_i = 0; block_i < N; block_i += BLOCK_SIZE)
-        {
-            if (block_j == block_i) // diagonal block
-            {
-                for (int offset_i = 0; offset_i < BLOCK_SIZE; offset_i++)
-                {
-                    int i = block_i + offset_i;
+// char transpose_blocks_diagonal_desc[] = "Transpose Blocks diagonal";
+// void transpose_blocks_diagonal(int M, int N, int A[N][M], int B[M][N])
+// {
+//     for (int block_j = 0; block_j < M; block_j += BLOCK_SIZE)
+//     {
+//         for (int block_i = 0; block_i < N; block_i += BLOCK_SIZE)
+//         {
+//             if (block_j == block_i) // diagonal block
+//             {
+//                 for (int offset_i = 0; offset_i < BLOCK_SIZE; offset_i++)
+//                 {
+//                     int i = block_i + offset_i;
 
-                    int temp = 0;      // temp for diagonal element
-                    int diag_index = -1;
+//                     int temp = 0;      // temp for diagonal element
+//                     int diag_index = -1;
 
-                    for (int offset_j = 0; offset_j < BLOCK_SIZE; offset_j++)
-                    {
-                        int j = block_j + offset_j;
+//                     for (int offset_j = 0; offset_j < BLOCK_SIZE; offset_j++)
+//                     {
+//                         int j = block_j + offset_j;
 
-                        if (i < N && j < M)
-                        {
-                            if (i != j)
-                            {
-                                B[j][i] = A[i][j];
-                            }
-                            else
-                            {
-                                temp = A[i][j];
-                                diag_index = i;
-                            }
-                        }
-                    }
+//                         if (i < N && j < M)
+//                         {
+//                             if (i != j)
+//                             {
+//                                 B[j][i] = A[i][j];
+//                             }
+//                             else
+//                             {
+//                                 temp = A[i][j];
+//                                 diag_index = i;
+//                             }
+//                         }
+//                     }
 
-                    // write diagonal element AFTER processing the row
-                    if (diag_index != -1)
-                    {
-                        B[diag_index][diag_index] = temp;
-                    }
-                }
-            }
-            else // off-diagonal blocks
-            {
-                for (int offset_i = 0; offset_i < BLOCK_SIZE; offset_i++)
-                {
-                    for (int offset_j = 0; offset_j < BLOCK_SIZE; offset_j++)
-                    {
-                        int i = block_i + offset_i;
-                        int j = block_j + offset_j;
+//                     // write diagonal element AFTER processing the row
+//                     if (diag_index != -1)
+//                     {
+//                         B[diag_index][diag_index] = temp;
+//                     }
+//                 }
+//             }
+//             else // off-diagonal blocks
+//             {
+//                 for (int offset_i = 0; offset_i < BLOCK_SIZE; offset_i++)
+//                 {
+//                     for (int offset_j = 0; offset_j < BLOCK_SIZE; offset_j++)
+//                     {
+//                         int i = block_i + offset_i;
+//                         int j = block_j + offset_j;
 
-                        if (i < N && j < M)
-                        {
-                            B[j][i] = A[i][j];
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+//                         if (i < N && j < M)
+//                         {
+//                             B[j][i] = A[i][j];
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
 
-/*void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
-{
-    // transpose_blocks_param(M, N, A, B, BLOCKSIZE, BLOCKSIZE);
-    for (int block_j = 0; block_j < M; block_j += BLOCKSIZE)  // columns of A
-    {
-        for (int block_i = 0; block_i < N; block_i += BLOCKSIZE)  // rows of A
-        {
-            if (block_j == block_i) {
-                // diagonal tile: swap inner loops compared to off-diagonal tiles
+// /*void transpose_blocks(int M, int N, int A[N][M], int B[M][N])
+// {
+//     // transpose_blocks_param(M, N, A, B, BLOCKSIZE, BLOCKSIZE);
+//     for (int block_j = 0; block_j < M; block_j += BLOCKSIZE)  // columns of A
+//     {
+//         for (int block_i = 0; block_i < N; block_i += BLOCKSIZE)  // rows of A
+//         {
+//             if (block_j == block_i) {
+//                 // diagonal tile: swap inner loops compared to off-diagonal tiles
                 
-            } else {
-                // off-diagonal tiles
-                for (int offset_j = 0; offset_j < BLOCKSIZE; offset_j++) {
-                    for (int offset_i = 0; offset_i < BLOCKSIZE; offset_i++) {
-                        int i = block_i + offset_i;
-                        int j = block_j + offset_j;
+//             } else {
+//                 // off-diagonal tiles
+//                 for (int offset_j = 0; offset_j < BLOCKSIZE; offset_j++) {
+//                     for (int offset_i = 0; offset_i < BLOCKSIZE; offset_i++) {
+//                         int i = block_i + offset_i;
+//                         int j = block_j + offset_j;
 
-                        if (i < N && j < M) {
-                            B[j][i] = A[i][j];
-                        }
-                    }
-                }
-            }  
-        }
-    }
-}*/
+//                         if (i < N && j < M) {
+//                             B[j][i] = A[i][j];
+//                         }
+//                     }
+//                 }
+//             }  
+//         }
+//     }
+// }*/
 
-void transpose_blocks_param(int M, int N, int A[N][M], int B[M][N], int blocksize_x, int blocksize_y)
-{
-    for (int block_j = 0; block_j < M; block_j += blocksize_y)  // columns of A
-    {
-        for (int block_i = 0; block_i < N; block_i += blocksize_x)  // rows of A
-        {
-            if (block_j == block_i) {
-                // diagonal tile: swap inner loops compared to off-diagonal tiles
-                for (int offset_i = 0; offset_i < blocksize_x; offset_i++) {
-                    for (int offset_j = 0; offset_j < blocksize_y; offset_j++) {
-                        int i = block_i + offset_i;
-                        int j = block_j + offset_j;
+// void transpose_blocks_param(int M, int N, int A[N][M], int B[M][N], int blocksize_x, int blocksize_y)
+// {
+//     for (int block_j = 0; block_j < M; block_j += blocksize_y)  // columns of A
+//     {
+//         for (int block_i = 0; block_i < N; block_i += blocksize_x)  // rows of A
+//         {
+//             if (block_j == block_i) {
+//                 // diagonal tile: swap inner loops compared to off-diagonal tiles
+//                 for (int offset_i = 0; offset_i < blocksize_x; offset_i++) {
+//                     for (int offset_j = 0; offset_j < blocksize_y; offset_j++) {
+//                         int i = block_i + offset_i;
+//                         int j = block_j + offset_j;
 
-                        if (i < N && j < M) {
-                            B[j][i] = A[i][j];
-                        }
-                    }
-                }
-            } else {
-                // off-diagonal tiles
-                for (int offset_j = 0; offset_j < blocksize_y; offset_j++) {
-                    for (int offset_i = 0; offset_i < blocksize_x; offset_i++) {
-                        int i = block_i + offset_i;
-                        int j = block_j + offset_j;
+//                         if (i < N && j < M) {
+//                             B[j][i] = A[i][j];
+//                         }
+//                     }
+//                 }
+//             } else {
+//                 // off-diagonal tiles
+//                 for (int offset_j = 0; offset_j < blocksize_y; offset_j++) {
+//                     for (int offset_i = 0; offset_i < blocksize_x; offset_i++) {
+//                         int i = block_i + offset_i;
+//                         int j = block_j + offset_j;
 
-                        if (i < N && j < M) {
-                            B[j][i] = A[i][j];
-                        }
-                    }
-                }
-            }  
-        }
-    }
-}
+//                         if (i < N && j < M) {
+//                             B[j][i] = A[i][j];
+//                         }
+//                     }
+//                 }
+//             }  
+//         }
+//     }
+// }
 
-char transpose_tiled_desc[] = "Transpose tiled";
-void transpose_tiled(int M, int N, int A[N][M], int B[M][N])
-{
-    int i_block, j_block, i, j, temp_0, temp_1, temp_2, temp_3;
+// char transpose_tiled_desc[] = "Transpose tiled";
+// void transpose_tiled(int M, int N, int A[N][M], int B[M][N])
+// {
+//     int i_block, j_block, i, j, temp_0, temp_1, temp_2, temp_3;
 
-    /* Loop over the four 32×32 quadrants using offsets */
-    int off_i, off_j;
-    for (off_i = 0; off_i <= 32; off_i += 32) {
-        for (off_j = 0; off_j <= 32; off_j += 32) {
+//     /* Loop over the four 32×32 quadrants using offsets */
+//     int off_i, off_j;
+//     for (off_i = 0; off_i <= 32; off_i += 32) {
+//         for (off_j = 0; off_j <= 32; off_j += 32) {
 
-            /* Now tile 4×4 inside this quadrant */
-            for (j_block = off_j; j_block < off_j + 32; j_block += 4) {
-                for (i_block = off_i; i_block < off_i + 32; i_block += 4) {
+//             /* Now tile 4×4 inside this quadrant */
+//             for (j_block = off_j; j_block < off_j + 32; j_block += 4) {
+//                 for (i_block = off_i; i_block < off_i + 32; i_block += 4) {
 
-                    // if (i_block == j_block) {
-                    //     /* diagonal block copy */
-                    //     for (i = i_block; i < i_block + 4 && i < N; i++) {
-                    //         temp = -1;
-                    //         for (j = j_block; j < j_block + 4 && j < M; j++) {
-                    //             if (i == j) {
-                    //                 temp = A[i][j];
-                    //             } else {
-                    //                 B[j][i] = A[i][j];
-                    //             }
-                    //         }
-                    //         B[i][i] = temp;
-                    //     }
-                    // }
-                    // else {
-                    //     /* normal 4x4 transpose */
-                    //     for (i = i_block; i < i_block + 4 && i < N; i++) {
-                    //         // for (j = j_block; j < j_block + 4 && j < M; j++) {
-                    //         //     B[j][i] = A[i][j];
-                    //         // }
-                    //         temp_0 = A[i][j_block + 0];
-                    //         temp_1 = A[i][j_block + 1];
-                    //         temp_2 = A[i][j_block + 2];
-                    //         temp_3 = A[i][j_block + 3];
+//                     for (i = i_block; i < i_block + 4 && i < N; i++) {
+//                         temp_0 = A[i][j_block + 0];
+//                         temp_1 = A[i][j_block + 1];
+//                         temp_2 = A[i][j_block + 2];
+//                         temp_3 = A[i][j_block + 3];
 
-                    //         B[j_block + 0][i] = temp_0;
-                    //         B[j_block + 1][i] = temp_1;
-                    //         B[j_block + 2][i] = temp_2;
-                    //         B[j_block + 3][i] = temp_3;
-                    //     }
-                    // }
+//                         B[j_block + 0][i] = temp_0;
+//                         B[j_block + 1][i] = temp_1;
+//                         B[j_block + 2][i] = temp_2;
+//                         B[j_block + 3][i] = temp_3;
+//                     }
 
-                    for (i = i_block; i < i_block + 4 && i < N; i++) {
-                        // for (j = j_block; j < j_block + 4 && j < M; j++) {
-                        //     B[j][i] = A[i][j];
-                        // }
-                        temp_0 = A[i][j_block + 0];
-                        temp_1 = A[i][j_block + 1];
-                        temp_2 = A[i][j_block + 2];
-                        temp_3 = A[i][j_block + 3];
+//                 }
+//             }
 
-                        B[j_block + 0][i] = temp_0;
-                        B[j_block + 1][i] = temp_1;
-                        B[j_block + 2][i] = temp_2;
-                        B[j_block + 3][i] = temp_3;
-                    }
+//         }
+//     }
+// }
 
-                }
-            }
+// char transpose_triangle_desc[] = "Transpose triangle";
+// void transpose_triangle(int M, int N, int A[N][M], int B[M][N])
+// {
+//     int i, j, tmp;
 
-        }
-    }
-}
+//     for (i = 0; i < N; i++) {
+//         for (j = i; j < M; j++) {
+//             if (i != j){
+//                 B[i][j] = A[j][i];
+//                 B[j][i] = A[i][j];
+//             }
+//         }
+//     }    
 
-char transpose_triangle_desc[] = "Transpose triangle";
-void transpose_triangle(int M, int N, int A[N][M], int B[M][N])
-{
-    int i, j, tmp;
+// }
 
-    for (i = 0; i < N; i++) {
-        for (j = i; j < M; j++) {
-            if (i != j){
-                B[i][j] = A[j][i];
-                B[j][i] = A[i][j];
-            }
-        }
-    }    
+// char hyper_32_desc[] = "hyper_32";
+// void hyper_32(int M, int N, int A[N][M], int B[M][N])
+// {
+//     int i, j, tmp;
 
-}
+//     if (M != 32){
+//         return;
+//     }
 
-char hyper_32_desc[] = "hyper_32";
-void hyper_32(int M, int N, int A[N][M], int B[M][N])
-{
-    int i, j, tmp;
+//     for (i = 0; i < 16; i++){
+//         for (j = 0; j < 16; j++){
+//             B[j][i] = A[i][j];
+//         }
+//     }
 
-    if (M != 32){
-        return;
-    }
+//     for (i = 0; i < 16; i++){
+//         for (j = 16; j < 32; j++){
+//             B[j][i] = A[i][j];
+//         }
+//     }
 
-    for (i = 0; i < 16; i++){
-        for (j = 0; j < 16; j++){
-            B[j][i] = A[i][j];
-        }
-    }
+//     for (i = 16; i < 32; i++){
+//         for (j = 0; j < 16; j++){
+//             B[j][i] = A[i][j];
+//         }
+//     }
 
-    for (i = 0; i < 16; i++){
-        for (j = 16; j < 32; j++){
-            B[j][i] = A[i][j];
-        }
-    }
-
-    for (i = 16; i < 32; i++){
-        for (j = 0; j < 16; j++){
-            B[j][i] = A[i][j];
-        }
-    }
-
-    for (i = 16; i < 32; i++){
-        for (j = 16; j < 32; j++){
-            B[j][i] = A[i][j];
-        }
-    }
-}
+//     for (i = 16; i < 32; i++){
+//         for (j = 16; j < 32; j++){
+//             B[j][i] = A[i][j];
+//         }
+//     }
+// }
 
 /*
  * registerFunctions - This function registers your transpose
@@ -516,7 +370,7 @@ void registerFunctions(void)
     // registerTransFunction(transpose_reversed, transpose_reversed_desc);
     //registerTransFunction(transpose_blocks_naive, transpose_blocks_naive_desc);
     //registerTransFunction(transpose_blocks_diagonal, transpose_blocks_diagonal_desc);
-    registerTransFunction(transpose_tiled, transpose_tiled_desc);
+    // registerTransFunction(transpose_tiled, transpose_tiled_desc);
     // registerTransFunction(transpose_triangle, transpose_triangle_desc);
     // registerTransFunction(hyper_32, hyper_32_desc);
 }
