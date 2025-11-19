@@ -17,11 +17,6 @@
 #include <stdint.h>
 #include "cachelab.h"
 
-// #define DEBUG
-
-#include "dump_cache.h"
-
-#ifndef USING_DUMP_CACHE
 typedef enum {
     M,
     L,
@@ -49,7 +44,6 @@ typedef struct {
     unsigned int miss_count;
     unsigned int eviction_count;
 } Cache_t;
-#endif
 
 void initCache(Cache_t* cache, unsigned int num_set_index_bits, unsigned int num_lines_per_set);
 unsigned int checkArgs(int argc, char** argv, unsigned int* num_set_index_bits, unsigned int* num_lines_per_set, unsigned int* num_block_bits, char** trace_file_name);
@@ -81,9 +75,11 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    // set up cache
     Cache_t cache;
     initCache(&cache, num_set_index_bits, num_lines_per_set);
 
+    // read through file
     char line[20];
     while (fgets(line, sizeof(line), trace_file) != NULL) {
         if (line[0] != ' ') {
@@ -91,7 +87,7 @@ int main(int argc, char **argv)
         }
 
         unsigned int address;
-         
+        
         INST_t inst_type = getAddressFromLine(line, &address);
 
         unsigned int tag;
@@ -108,19 +104,15 @@ int main(int argc, char **argv)
         {
         case M:
             loadFromMemory(&cache, tag, set_index);
-            dumpCache(&cache);
             storeToMemory(&cache, tag, set_index);
-            dumpCache(&cache);
             break;
 
         case L:
             loadFromMemory(&cache, tag, set_index);
-            dumpCache(&cache);
             break;
 
         case S:
             storeToMemory(&cache, tag, set_index);
-            dumpCache(&cache);
             break;
         
         default:
