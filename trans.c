@@ -25,7 +25,7 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
-    int j_block, i_block, i, j, temp_0, temp_1, temp_2, temp_3, off_i, off_j;
+    int j_block, i_block, i, j, temp_0, temp_1, temp_2, temp_3, temp_4, temp_5, temp_6, temp_7;
 
     // 32x32 and 61x67 both work with 8x8 blocks
     if ((M == N && M == 32) || (M == 61 && N == 67)){
@@ -75,35 +75,68 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
     }
     // special 64x64 case
     else {
-        // iterate through 32x32 blocks on the x
-        for (off_i = 0; off_i <= 32; off_i += 32) {
-            // iterate through 32x32 blocks on the y
-            for (off_j = 0; off_j <= 32; off_j += 32) {
+        for (i_block = 0; i_block < 64; i_block += 8)
+        {
+            for (j_block = 0; j_block < 64; j_block += 8)
+            {
+                // First 8x8 is broken into two 4x8 operations
+                for (i = i_block; i < i_block + 4; i++)
+                {
 
-                // tile 4×4 inside this quadrant
-                // iterate through 4x4 blocks x
-                for (j_block = off_j; j_block < off_j + 32; j_block += 4) {
-                    // iterate through 4x4 block y
-                    for (i_block = off_i; i_block < off_i + 32; i_block += 4) {
+                    temp_0 = A[i][j_block+0];
+                    temp_1 = A[i][j_block+1];
+                    temp_2 = A[i][j_block+2];
+                    temp_3 = A[i][j_block+3];
+                    temp_4 = A[i][j_block+4];
+                    temp_5 = A[i][j_block+5];
+                    temp_6 = A[i][j_block+6];
+                    temp_7 = A[i][j_block+7];
 
-                        // iterate through rows and transpose line by line
-                        for (i = i_block; i < i_block + 4 && i < N; i++) {
-                            temp_0 = A[i][j_block + 0];
-                            temp_1 = A[i][j_block + 1];
-                            temp_2 = A[i][j_block + 2];
-                            temp_3 = A[i][j_block + 3];
 
-                            B[j_block + 0][i] = temp_0;
-                            B[j_block + 1][i] = temp_1;
-                            B[j_block + 2][i] = temp_2;
-                            B[j_block + 3][i] = temp_3;
-                        }
+                    B[j_block+0][i] = temp_0;
+                    B[j_block+1][i] = temp_1;
+                    B[j_block+2][i] = temp_2;
+                    B[j_block+3][i] = temp_3;
 
-                    }
+
+                    // place second half in a temporary vertical slot
+                    B[j_block+0][i + 4] = temp_4;
+                    B[j_block+1][i + 4] = temp_5;
+                    B[j_block+2][i + 4] = temp_6;
+                    B[j_block+3][i + 4] = temp_7;
                 }
 
+                // Move the saved temporary 4x4 block into final location
+                for (j = j_block; j < j_block + 4; j++)
+                {
+                    temp_4 = B[j][i_block+4];
+                    temp_5 = B[j][i_block+5];
+                    temp_6 = B[j][i_block+6];
+                    temp_7 = B[j][i_block+7];
+
+                    B[j][i_block+4] = A[i_block+4][j];
+                    B[j][i_block+5] = A[i_block+5][j];
+                    B[j][i_block+6] = A[i_block+6][j];
+                    B[j][i_block+7] = A[i_block+7][j];
+
+                    B[j+4][i_block] = temp_4;
+                    B[j+4][i_block+1] = temp_5;
+                    B[j+4][i_block+2] = temp_6;
+                    B[j+4][i_block+3] = temp_7;
+                }
+
+
+                // bottom-right 4×4
+                for (i = i_block + 4; i < i_block + 8; i++) 
+                {
+                    for (j = j_block + 4; j < j_block + 8; j++) 
+                    {
+                        B[j][i] = A[i][j];
+                    }
+                }
             }
         }
+        return;
     }
 }
 
